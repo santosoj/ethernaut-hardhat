@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>18_MagicNum.ts</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>18_MagicNum.ts</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">BigNumber</span>, <span class="hljs-title class_">Contract</span>, providers, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">TransactionResponse</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@ethersproject/providers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x200d3d9Ac7bFd556057224e7aEB4161fED5608D0&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x48F2f1C55f86a066beDD96FC51237a1caFAE9B4E&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;18 MagicNumber&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">provider</span>: providers.<span class="hljs-property">Provider</span>
+
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">solverAddress</span>: <span class="hljs-built_in">string</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;MagicNum&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+    provider = signer.<span class="hljs-property">provider</span>
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;deploys solver contract from bytecode&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> deployBytecode = <span class="hljs-string">&#x27;0x69602a60005260206000f3600052600a6016f3&#x27;</span>
+    <span class="hljs-keyword">const</span> params = {<span class="hljs-attr">data</span>: deployBytecode}
+    <span class="hljs-keyword">const</span> tx = (<span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">sendTransaction</span>(params)) <span class="hljs-keyword">as</span> <span class="hljs-title class_">TransactionResponse</span> &amp; {<span class="hljs-attr">creates</span>: <span class="hljs-built_in">string</span>}
+    solverAddress = tx.<span class="hljs-property">creates</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies solver returns 42&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-title class_">BigNumber</span>.<span class="hljs-title function_">from</span>(<span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">call</span>({<span class="hljs-attr">to</span>: solverAddress}))).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(<span class="hljs-number">42</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;sets solver address on instance&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">setSolver</span>(solverAddress)
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

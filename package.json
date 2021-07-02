@@ -1,0 +1,25 @@
+{
+  "name": "hardhat-project",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "3.4.0",
+    "@types/chai": "^4.2.19",
+    "@types/chai-as-promised": "^7.1.4",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^15.12.4",
+    "chai": "^4.3.4",
+    "chai-as-promised": "^7.1.1",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.3.1",
+    "hardhat": "^2.4.0",
+    "highlightjs-solidity": "^1.1.1",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.4"
+  },
+  "dependencies": {},
+  "scripts": {
+    "console": "NODE_OPTIONS='--experimental-repl-await' npx hardhat run scripts/consoleStartup.ts",
+    "docs": "for a in `ls contracts/*Attack.sol; ls tests/??_*.ts`; do docco -L docs-src/languages.json -p docs-src/docco.plugin.js -l dovccoir \"$a\" ; done"
+  }
+}

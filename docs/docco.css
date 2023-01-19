@@ -70,14 +70,6 @@ h1, h2, h3, h4, h5, h6 {
   h2 {
     font-size: 1.26em;
   }
-  h1:after {
-    content: "8";
-    display: block;
-    font-family: "fleurons";
-    color: #999;
-    font-size: 80px;
-    padding: 10px 0 25px;
-  }
 
 a {
   color: #000;
